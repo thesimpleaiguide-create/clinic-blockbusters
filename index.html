@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clinic Blockbusters | Specialist Training</title>
     
+    <!-- Preload background to prevent any white flashes -->
+    <link rel="preload" as="image" href="https://thesimpleaiguide-create.github.io/clinic-blockbusters/blockbusters-bg.jpeg">
+
     <!-- URL FIXER -->
     <script>
         if (window.location.pathname.endsWith('.html/')) {
@@ -29,7 +32,7 @@
 
         .show-font { font-family: 'Righteous', cursive; }
 
-        /* Board Scaling for the Big Screen background */
+        /* Board Container */
         #game-board {
             position: relative;
             width: 100%;
@@ -38,63 +41,119 @@
             align-items: center;
             justify-content: center;
             z-index: 10;
-            padding-bottom: 20px;
         }
 
+        #hex-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; 
+            padding: 20px;
+        }
+
+        .hex-column {
+            display: flex;
+            flex-direction: column;
+            margin-left: -21px; 
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        
+        .hex-column:first-child {
+            margin-left: 0;
+        }
+
+        /* Classic Stagger: Locks the honeycomb together vertically */
+        .stagger-down {
+            margin-top: 40px; 
+        }
+
+        /* Mathematically Perfect Flat-Top Hexagon */
         .hex-tile {
-            width: 115px;
-            height: 130px;
-            background: rgba(30, 41, 59, 0.4);
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            width: 84px; 
+            height: 74px;
+            margin-bottom: 6px;
+            background: rgba(30, 41, 59, 0.8);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+            will-change: transform, box-shadow;
         }
 
-        .hex-tile:hover:not(.captured):not(.blocked):not(.inactive-start) {
-            transform: scale(1.1);
-            background: rgba(51, 65, 85, 0.7);
-            box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
-            z-index: 20;
+        .hex-tile:hover:not(.captured):not(.blocked):not(.inactive-start):not(.static) {
+            transform: scale(1.15);
+            background: rgba(51, 65, 85, 1);
+            box-shadow: 0 0 50px rgba(59, 130, 246, 0.8);
+            z-index: 100 !important;
         }
 
         .hex-inner {
-            width: 92%;
-            height: 92%;
-            background: rgba(15, 23, 42, 0.85);
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            width: 90%;
+            height: 90%;
+            background: rgba(15, 23, 42, 0.95);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5rem;
+            font-size: 1.8rem;
             font-weight: 900;
             color: #fbbf24;
             text-shadow: 0 0 15px rgba(251, 191, 36, 0.6);
         }
 
-        .hex-tile.captured-blue { background: #2563eb; border-color: #60a5fa; }
+        /* PERFECT HALF-HEX BORDERS */
+        .hex-left-half {
+            width: 42px; 
+            height: 74px;
+            margin-bottom: 6px;
+            background: #2563eb;
+            clip-path: polygon(0% 0%, 50% 0%, 100% 50%, 50% 100%, 0% 100%);
+            flex-shrink: 0;
+        }
+
+        .hex-right-half {
+            width: 42px; 
+            height: 74px;
+            margin-bottom: 6px;
+            background: #2563eb;
+            clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 50%);
+            flex-shrink: 0;
+        }
+
+        /* Game States */
+        .hex-tile.captured-blue { background: #2563eb; z-index: 20; }
         .hex-tile.captured-blue .hex-inner { background: #1d4ed8; color: white; }
 
         .hex-tile.blocked { 
             background: #ef4444; 
             cursor: not-allowed;
             transform: scale(0.95);
-            opacity: 0.9;
+            opacity: 1;
+            z-index: 10;
         }
         .hex-tile.blocked .hex-inner { background: #7f1d1d; color: white; text-shadow: none; }
 
-        .hex-tile.inactive-start { opacity: 0.1; cursor: not-allowed; filter: grayscale(1); }
+        .hex-tile.inactive-start { 
+            opacity: 0.25; 
+            cursor: not-allowed; 
+            background: rgba(30, 41, 59, 0.3);
+            pointer-events: none; 
+        }
+        .hex-tile.inactive-start .hex-inner {
+            color: rgba(251, 191, 36, 0.2);
+            text-shadow: none;
+        }
 
-        /* Victory Hex Style */
+        /* Victory Hex Trophy */
         .win-hex-outer {
             width: 200px;
-            height: 230px;
+            height: 173px;
             background: #fbbf24;
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -104,15 +163,15 @@
         #board-bg {
             position: absolute;
             inset: 0;
-            background-image: url('https://thesimpleaiguide-create.github.io/conflict-trap/blockbusters-bg.jpeg');
+            background-image: url('https://thesimpleaiguide-create.github.io/clinic-blockbusters/blockbusters-bg.jpeg');
             background-size: cover;
             background-position: center;
-            opacity: 0.85;
+            opacity: 1;
             z-index: 0;
         }
 
         .glass-panel {
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -120,16 +179,18 @@
         .phase-hidden { display: none !important; }
         .phase-active { display: flex; animation: zoomIn 0.5s ease-out; }
         
-        @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes zoomIn { 
+            from { opacity: 0; transform: scale(0.95); } 
+            to { opacity: 1; transform: scale(1); } 
+        }
     </style>
 </head>
-<body class="p-4 lg:p-8">
+<body class="p-4 lg:p-8 text-slate-100">
 
-    <!-- Header -->
     <header class="w-full max-w-7xl mx-auto mb-6 flex justify-between items-center px-4 relative z-50">
         <div class="flex items-center gap-4">
-            <div class="p-3 bg-blue-600 rounded-xl shadow-lg">
-                <i data-lucide="layout-grid" class="text-white w-6 h-6"></i>
+            <div class="p-3 bg-blue-600 rounded-xl shadow-lg shadow-blue-900/40 text-white">
+                <i data-lucide="layout-grid" class="w-6 h-6"></i>
             </div>
             <div>
                 <h1 class="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-amber-400 uppercase show-font">Clinic Blockbusters</h1>
@@ -149,37 +210,40 @@
         </div>
     </header>
 
-    <!-- Phase 1: Briefing -->
     <div id="phase-briefing" class="phase-active flex-col w-full max-w-3xl glass-panel rounded-[40px] p-12 shadow-2xl mt-10 mx-auto text-center relative overflow-hidden">
         <h2 class="text-4xl font-black uppercase mb-6 tracking-tighter show-font italic text-amber-400 text-nowrap">The Gold Run</h2>
         <p class="text-lg text-slate-300 mb-10 leading-relaxed max-w-xl mx-auto font-light">
             Bridging the board from <strong>left to right</strong>.
             <br><br>
-            <strong>Note:</strong> Start on the far left column. If your path to the right side is ever completely cut off, the shift ends immediately!
+            <strong>Note:</strong> Start on the far left. If your path to the finish is completely cut off, the incident trap springs!
         </p>
-        <button onclick="startGame()" class="group bg-blue-600 hover:bg-blue-500 text-white font-black py-5 px-12 rounded-3xl text-2xl shadow-[0_20px_50px_rgba(37,99,235,0.4)] transition-all transform active:scale-95 flex items-center gap-4 mx-auto">
+        <button onclick="startGame()" class="group bg-blue-600 hover:bg-blue-500 text-white font-black py-5 px-12 rounded-3xl text-2xl shadow-lg transition-all transform active:scale-95 flex items-center gap-4 mx-auto outline-none focus:outline-none">
             START THE CLOCK <i data-lucide="play-circle" class="w-8 h-8 group-hover:rotate-12 transition-transform"></i>
         </button>
     </div>
 
-    <!-- Phase 2: Playing -->
     <div id="phase-playing" class="phase-hidden flex-col w-full max-w-7xl mx-auto">
         <div id="machine-wrapper" class="relative w-full aspect-[16/9] bg-slate-950 rounded-[32px] overflow-hidden border-8 border-slate-800 shadow-3xl">
             <div id="board-bg"></div>
-            <div id="game-board"><div id="hex-container" class="flex gap-x-12 relative z-10 px-10"></div></div>
-            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 glass-panel py-3 px-10 rounded-full border border-white/10 shadow-2xl z-20">
+            <div id="game-board">
+                <div id="hex-container">
+                    <!-- Main Grid Columns injected by JS -->
+                </div>
+            </div>
+
+            <!-- pointer-events-none added to ensure banner doesn't block bottom hexes -->
+            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 glass-panel py-3 px-10 rounded-full border border-white/10 shadow-2xl z-20 pointer-events-none">
                 <p id="instruction-text" class="text-sm font-black text-blue-400 uppercase tracking-[0.3em] italic">Select a gold tile on the far LEFT to begin</p>
             </div>
         </div>
     </div>
 
-    <!-- Phase 3: Question Modal -->
     <div id="question-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center z-[100] hidden p-6 overflow-y-auto">
         <div class="bg-slate-900 rounded-[50px] border-4 border-blue-500/30 w-full max-w-3xl p-10 shadow-3xl relative">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 to-amber-500"></div>
             <div class="flex justify-between items-start mb-8">
                 <div class="flex items-center gap-6">
-                    <div id="modal-hex" class="w-24 h-24 bg-amber-500 text-slate-900 flex items-center justify-center text-5xl font-black show-font shadow-2xl" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);"></div>
+                    <div id="modal-hex" class="w-28 h-24 bg-amber-500 text-slate-900 flex items-center justify-center text-5xl font-black show-font shadow-2xl" style="clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"></div>
                     <div>
                         <h3 class="text-3xl font-black uppercase tracking-tighter text-white show-font italic">Question...</h3>
                         <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em]">Module Assessment</p>
@@ -192,14 +256,11 @@
         </div>
     </div>
 
-    <!-- Cinematic Video Overlay -->
-    <div id="video-overlay" class="fixed inset-0 bg-black z-[100] hidden items-center justify-center">
-        <video id="failure-video" class="w-full h-full object-contain" playsinline muted>
-            <source src="https://thesimpleaiguide-create.github.io/conflict-trap/Red_X_appears_202604261706.mp4" type="video/mp4">
-        </video>
+    <!-- Cinematic Video Overlay Cloaked in CSS to prevent broken rendering flashes -->
+    <div id="video-overlay" class="fixed inset-0 bg-black flex items-center justify-center opacity-0 pointer-events-none -z-50 transition-opacity duration-300">
+        <video id="failure-video" class="w-full h-full object-contain" playsinline muted src="https://thesimpleaiguide-create.github.io/clinic-blockbusters/Red_X_appears_202604261706.mp4"></video>
     </div>
 
-    <!-- Phase 4: Result Page -->
     <div id="phase-result" class="phase-hidden flex-col w-full max-w-3xl mx-auto text-center mt-10">
         <div id="result-icon-container" class="flex items-center justify-center mx-auto mb-8 scale-110"></div>
         <h2 id="result-title" class="text-6xl font-black uppercase mb-4 tracking-tighter show-font italic"></h2>
@@ -220,35 +281,42 @@
         }
 
         const boardData = [
-            { id: 0, r: 0, c: 0, letter: 'B', term: 'Box Breathing', q: "A 4-step physiological reset used after difficult interactions to lower heart rate." },
-            { id: 1, r: 1, c: 0, letter: 'F', term: 'Fear', q: "The primary root cause behind most aggression encountered in GP practice settings." },
-            { id: 2, r: 2, c: 0, letter: 'A', term: 'Active Listening', q: "Bringing your own calm and showing real interest in the caller to de-escalate." },
-            { id: 3, r: 3, c: 0, letter: 'S', term: 'Sensory Reset', q: "Using physical sensations to ground yourself when a patient has left you feeling shaken." },
-            { id: 4, r: 0, c: 1, letter: 'M', term: "Miller's Law", q: "The principle stating that to understand someone, you should assume what they say is true." },
-            { id: 5, r: 1, c: 1, letter: 'E', term: 'Entitlement', q: "A belief that one deserves special treatment regardless of clinical need or fairness." },
-            { id: 6, r: 2, c: 1, letter: 'N', term: 'Negativity Bias', q: "The tendency to give more weight to one bad interaction than ten good ones." },
-            { id: 7, r: 3, c: 1, letter: 'H', term: 'Hidden Drivers', q: "Underlying factors like shame or trauma that influence behavior unconsciously." },
-            { id: 8, r: 0, c: 2, letter: 'P', term: 'Pace Control', q: "Preventing a patient from hijacking a contact through drifting narrative." },
-            { id: 9, r: 1, c: 2, letter: 'C', term: 'Clean Close', q: "The final 60 seconds where specific plans and timeframes are confirmed." },
-            { id: 10, r: 2, c: 2, letter: 'L', term: 'Ladder', q: "The 5-rung framework for holding professional boundaries calmly." },
-            { id: 11, r: 3, c: 2, letter: 'V', term: 'Validation', q: "Acknowledging patient feelings to target the nervous system ('I see you're worried')." },
-            { id: 12, r: 0, c: 3, letter: 'G', term: 'Gather', q: "One focused question used to identify the real reason for the patient's call." },
-            { id: 13, r: 1, c: 3, letter: 'R', term: 'Redirect', q: "A skilled technique used to pause a drifting conversation and move it forward." },
-            { id: 14, r: 2, c: 3, letter: 'T', term: 'Trauma', q: "Past negative experiences that can cause a patient to be hypervigilant or volatile." },
-            { id: 15, r: 3, c: 3, letter: 'I', term: 'Indignant', q: "A behavior type driven by status-seeking or perceived disrespect." },
-            { id: 16, r: 0, c: 4, letter: 'O', term: 'Open', q: "The first part of a structured contact that sets role, purpose, and time expectations." },
-            { id: 17, r: 1, c: 4, letter: 'D', term: 'Demanding', q: "Behavior characterized by persistent insistence, urgency, and impatience." },
-            { id: 18, r: 2, c: 4, letter: 'U', term: 'Unmet Needs', q: "Aggression caused by conditions like PTSD, paranoia, or cognitive impairment." },
-            { id: 19, r: 3, c: 4, letter: 'W', term: 'What I Control', q: "The model focusing on your own boundaries and responses only." }
+            { id: 0, r: 0, c: 0, letter: 'B', term: 'Box Breathing', distractors: ['Boundary Setting', 'Behavioral Mirror', 'Bypass Response'], q: "A 4-step physiological reset used after difficult interactions to lower heart rate." },
+            { id: 1, r: 1, c: 0, letter: 'F', term: 'Fear', distractors: ['Frustration', 'Fatigue', 'Fabrication'], q: "The primary root cause behind most aggression encountered in GP practice settings." },
+            { id: 2, r: 2, c: 0, letter: 'A', term: 'Active Listening', distractors: ['Aggressive Posturing', 'Assertive Redirection', 'Avoidance Tactics'], q: "Bringing your own calm and showing real interest in the caller to de-escalate." },
+            { id: 3, r: 3, c: 0, letter: 'S', term: 'Sensory Reset', distractors: ['Systematic Review', 'Situational Awareness', 'Sympathetic Mirroring'], q: "Using physical sensations to ground yourself when a patient has left you feeling shaken." },
+            { id: 4, r: 0, c: 1, letter: 'M', term: "Miller's Law", distractors: ["Maslow's Hierarchy", 'Motivational Interviewing', 'Mirroring Technique'], q: "The principle stating that to understand someone, you should assume what they say is true." },
+            { id: 5, r: 1, c: 1, letter: 'E', term: 'Entitlement', distractors: ['Exhaustion', 'Emotional Flooding', 'Ego Defense'], q: "A belief that one deserves special treatment regardless of clinical need or fairness." },
+            { id: 6, r: 2, c: 1, letter: 'N', term: 'Negativity Bias', distractors: ['Narrative Drifting', 'Nervous System Override', 'Non-Compliance'], q: "The tendency to give more weight to one bad interaction than ten good ones." },
+            { id: 7, r: 3, c: 1, letter: 'H', term: 'Hidden Drivers', distractors: ['Hostility Loop', 'Hyper-Vigilance', 'Hasty Generalization'], q: "Underlying factors like shame or trauma that influence behavior unconsciously." },
+            { id: 8, r: 0, c: 2, letter: 'P', term: 'Pace Control', distractors: ['Passive Listening', 'Patient Profiling', 'Power Dynamics'], q: "Preventing a patient from hijacking a contact through drifting narrative." },
+            { id: 9, r: 1, c: 2, letter: 'C', term: 'Clean Close', distractors: ['Cognitive Bias', 'Conflict Loop', 'Clinical Distancing'], q: "The final 60 seconds where specific plans and timeframes are confirmed." },
+            { id: 10, r: 2, c: 2, letter: 'L', term: 'Ladder', distractors: ['Listening Gap', 'Locus of Control', 'Logical Override'], q: "The 5-rung framework for holding professional boundaries calmly." },
+            { id: 11, r: 3, c: 2, letter: 'V', term: 'Validation', distractors: ['Verbal De-escalation', 'Venting Phase', 'Vocal Mirroring'], q: "Acknowledging patient feelings to target the nervous system ('I see you're worried')." },
+            { id: 12, r: 0, c: 3, letter: 'G', term: 'Gather', distractors: ['Grounding', 'Guiding Response', 'Gateway Question'], q: "One focused question used to identify the real reason for the patient's call." },
+            { id: 13, r: 1, c: 3, letter: 'R', term: 'Redirect', distractors: ['Reactive Loop', 'Rationalization', 'Resilience Building'], q: "A skilled technique used to pause a drifting conversation and move it forward." },
+            { id: 14, r: 2, c: 3, letter: 'T', term: 'Trauma', distractors: ['Trigger Stacking', 'Tactical Empathy', 'Tension Spiking'], q: "Past negative experiences that can cause a patient to be hypervigilant or volatile." },
+            { id: 15, r: 3, c: 3, letter: 'I', term: 'Indignant', distractors: ['Irrational', 'Intimidating', 'Impulsive'], q: "A behavior type driven by status-seeking or perceived disrespect." },
+            { id: 16, r: 0, c: 4, letter: 'O', term: 'Open', distractors: ['Objective Framing', 'Over-Apologizing', 'Observation Mode'], q: "The first part of a structured contact that sets role, purpose, and time expectations." },
+            { id: 17, r: 1, c: 4, letter: 'D', term: 'Demanding', distractors: ['Defensive', 'Dismissive', 'Dysregulated'], q: "Behavior characterized by persistent insistence, urgency, and impatience." },
+            { id: 18, r: 2, c: 4, letter: 'U', term: 'Unmet Needs', distractors: ['Unconscious Bias', 'Unregulated Tone', 'Unrealistic Expectations'], q: "Aggression caused by conditions like PTSD, paranoia, or cognitive impairment." },
+            { id: 19, r: 3, c: 4, letter: 'W', term: 'What I Control', distractors: ['Window of Tolerance', 'Warning Signs', 'Withdrawal Response'], q: "The model focusing on your own boundaries and responses only." }
         ];
 
-        const distractors = ["Boundary Formula", "Neutral Description", "Paraverbal Layer", "Fairness Frame", "Interaction Gap"];
         let state = { captured: [], blocked: [], activeId: null, timer: null };
 
         function startGame() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            document.getElementById('phase-briefing').classList.add('phase-hidden');
-            document.getElementById('phase-playing').classList.remove('phase-hidden');
+            
+            const briefingPhase = document.getElementById('phase-briefing');
+            const playingPhase = document.getElementById('phase-playing');
+            
+            briefingPhase.classList.add('phase-hidden');
+            briefingPhase.classList.remove('phase-active');
+            
+            playingPhase.classList.remove('phase-hidden');
+            playingPhase.classList.add('phase-active'); 
+            
             renderBoard();
         }
 
@@ -256,13 +324,28 @@
             const container = document.getElementById('hex-container');
             container.innerHTML = '';
             const nothingCaptured = state.captured.length === 0;
+
+            // Left Blue Indicator (Staggered Down to interlock with Col 0)
+            const leftCol = document.createElement('div');
+            leftCol.className = 'hex-column stagger-down';
+            for(let i=0; i<4; i++) {
+                const half = document.createElement('div');
+                half.className = 'hex-left-half opacity-90 shadow-[0_0_20px_rgba(37,99,235,0.4)]';
+                leftCol.appendChild(half);
+            }
+            container.appendChild(leftCol);
+
+            // Main Playable Columns
             for (let c = 0; c < 5; c++) {
+                const isStaggered = (c % 2 !== 0);
                 const colDiv = document.createElement('div');
-                colDiv.className = "flex flex-col gap-3 " + (c % 2 !== 0 ? "mt-12" : "");
+                colDiv.className = "hex-column" + (isStaggered ? " stagger-down" : "");
+                
                 boardData.filter(t => t.c === c).forEach(t => {
                     const isCaptured = state.captured.includes(t.id);
                     const isBlocked = state.blocked.includes(t.id);
                     const isInactive = nothingCaptured && t.c !== 0;
+                    
                     const tile = document.createElement('div');
                     tile.className = `hex-tile ${isCaptured ? 'captured-blue' : ''} ${isBlocked ? 'blocked' : ''} ${isInactive ? 'inactive-start' : ''}`;
                     if (!isCaptured && !isBlocked && !isInactive) tile.onclick = () => openQuestion(t.id);
@@ -271,6 +354,17 @@
                 });
                 container.appendChild(colDiv);
             }
+
+            // Right Blue Indicator (Staggered Down to interlock with Col 4)
+            const rightCol = document.createElement('div');
+            rightCol.className = 'hex-column stagger-down';
+            for(let i=0; i<4; i++) {
+                const half = document.createElement('div');
+                half.className = 'hex-right-half opacity-90 shadow-[0_0_20px_rgba(37,99,235,0.4)]';
+                rightCol.appendChild(half);
+            }
+            container.appendChild(rightCol);
+
             lucide.createIcons();
         }
 
@@ -278,10 +372,9 @@
             const data = boardData.find(b => b.id === id); state.activeId = id;
             document.getElementById('modal-hex').innerText = data.letter;
             document.getElementById('question-text').innerText = data.q;
-            let opts = [data.term]; while (opts.length < 4) {
-                const rand = distractors[Math.floor(Math.random() * distractors.length)];
-                if (!opts.includes(rand)) opts.push(rand);
-            }
+            
+            let opts = [data.term, ...data.distractors];
+            
             opts.sort(() => Math.random() - 0.5);
             document.getElementById('option-list').innerHTML = opts.map(o => {
                 const escapedTerm = o.replace(/'/g, "\\'");
@@ -323,12 +416,11 @@
             document.getElementById('captured-count').innerText = state.captured.length;
         }
 
-        // CONNECTIVITY & POSSIBILITY LOGIC
         function checkGameState() {
             const captured = state.captured;
             const blocked = state.blocked;
 
-            // 1. Pathfinding Check for WIN (c=0 to c=4 using ONLY CAPTURED)
+            // 1. Check for WIN
             const capturedTiles = captured.map(id => boardData.find(b => b.id === id));
             const winStart = capturedTiles.filter(t => t.c === 0);
             let winExists = false;
@@ -343,7 +435,7 @@
             }
             if (winExists) { setTimeout(() => endGame(true), 800); return; }
 
-            // 2. Pathfinding Check for LOSS (Is ANY path possible using NON-BLOCKED tiles?)
+            // 2. Check for LOSS
             const nonBlocked = boardData.filter(t => !blocked.includes(t.id));
             const pathStart = nonBlocked.filter(t => t.c === 0);
             let pathPossible = false;
@@ -364,9 +456,9 @@
             return boardData.filter(t => {
                 if (!allowedIds.includes(t.id)) return false;
                 const rDiff = Math.abs(t.r - tile.r), cDiff = Math.abs(t.c - tile.c);
-                if (cDiff === 0 && rDiff === 1) return true; // Vertically touching
+                if (cDiff === 0 && rDiff === 1) return true; 
                 if (cDiff === 1) {
-                    if (tile.c % 2 === 0) return (t.r === tile.r || t.r === tile.r - 1); 
+                    if (tile.c % 2 === 0) return (t.r === tile.r || t.r === tile.r - 1);
                     else return (t.r === tile.r || t.r === tile.r + 1);
                 }
                 return false;
@@ -374,22 +466,35 @@
         }
 
         function endGame(won) {
-            document.getElementById('phase-playing').classList.add('phase-hidden');
+            const playingPhase = document.getElementById('phase-playing');
+            playingPhase.classList.add('phase-hidden');
+            playingPhase.classList.remove('phase-active');
+            
             if (!won) {
                 const vidOverlay = document.getElementById('video-overlay');
                 const vid = document.getElementById('failure-video');
-                vidOverlay.classList.remove('hidden'); vidOverlay.classList.add('flex');
+                
+                vidOverlay.classList.remove('opacity-0', 'pointer-events-none', '-z-50');
+                vidOverlay.classList.add('opacity-100', 'z-[100]');
+                
                 vid.play().catch(() => finishEndGame(false));
-                vid.onended = () => { vidOverlay.classList.add('hidden'); finishEndGame(false); };
-            } else { finishEndGame(true); }
+                vid.onended = () => { 
+                    vidOverlay.classList.add('opacity-0', 'pointer-events-none', '-z-50');
+                    vidOverlay.classList.remove('opacity-100', 'z-[100]');
+                    finishEndGame(false); 
+                };
+            } else { 
+                finishEndGame(true); 
+            }
         }
 
         function finishEndGame(won) {
             document.getElementById('phase-result').classList.remove('phase-hidden');
-            document.getElementById('phase-result').classList.add('flex');
+            document.getElementById('phase-result').classList.add('phase-active');
+            
             const title = document.getElementById('result-title'), body = document.getElementById('result-body'), iconContainer = document.getElementById('result-icon-container');
             if (won) {
-                iconContainer.innerHTML = `<div class="win-hex-outer"><div class="win-hex-inner bg-slate-900 w-[92%] h-[92%] flex items-center justify-center" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);"><i data-lucide="award" class="w-24 h-24 text-amber-400"></i></div></div>`;
+                iconContainer.innerHTML = `<div class="win-hex-outer"><div class="win-hex-inner bg-slate-900 w-[92%] h-[92%] flex items-center justify-center" style="clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"><i data-lucide="award" class="w-24 h-24 text-amber-400"></i></div></div>`;
                 title.innerText = "CLINIC BLOCKBUSTER!"; title.className = "text-6xl font-black uppercase mb-4 tracking-tighter show-font italic text-amber-400";
                 body.innerText = "Incredible work! You bridged the clinic floor and demonstrated total terminology mastery. The gold run is yours!";
             } else {
